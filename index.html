@@ -1,0 +1,216 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 9</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+	
+var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update });
+
+var sprite;
+var bullets;
+var veggies;
+var cursors;
+var scoreText;
+var bulletTime = 0;
+var bullet;
+var score = 0;
+var button;
+var active;
+var totalVeggies = 50;
+var velocity = 5;
+var lvl = 1;
+var levelText;
+
+function preload() {
+
+    game.load.image('ground', 'assets/platform.png');
+    game.load.image('veggies', 'assets/star.png?v=2');
+    game.load.image('shur', 'assets/shur.png');
+    game.load.image('button', 'assets/btn_play.png');
+    game.load.image('phaser', 'assets/dude.png');
+    game.load.image('background', 'assets/inicio.png');
+    game.load.image('map', 'assets/map.png');
+}
+
+function create() {
+	
+	background = game.add.tileSprite(0, 0, 800, 600, "background");
+
+	totalVeggies = 50;
+
+	velocity = velocity + lvl * 2;
+
+	active = 0;
+	
+	button = game.add.button(game.world.centerX - 130, 150, 'button', actionOnClick, this, 2, 1, 0);
+
+}
+
+function update() {
+
+	if (active == 1)
+	{	
+		//  As we don't need to exchange any velocities or motion we can the 'overlap' check instead of 'collide'
+    	game.physics.arcade.overlap(bullets, veggies, collisionHandler, null, this);
+	
+    	sprite.body.velocity.x = 0;
+    	sprite.body.velocity.y = 0;
+	
+    	if (cursors.left.isDown)
+    	{
+    	    sprite.body.velocity.x = -300;
+    	}
+    	else if (cursors.right.isDown)
+    	{
+    	    sprite.body.velocity.x = 300;
+    	}
+	
+    	if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR))
+    	{
+    	    fireBullet();
+    	}
+	}
+}
+
+function fireBullet () {
+
+    if (game.time.now > bulletTime)
+    {
+        bullet = bullets.getFirstExists(false);
+
+        if (bullet)
+        {
+            bullet.reset(sprite.x + 6, sprite.y - 8);
+            bullet.body.velocity.y = -300;
+            bulletTime = game.time.now + 150;
+        }
+    }
+
+}
+
+//  Called if the bullet goes out of the screen
+function resetBullet (bullet) {
+
+    bullet.kill();
+
+}
+
+function destroyVeg(vegge){
+    vegge.kill();
+
+
+    score = score - 10;
+    scoreText.text = 'Score: ' + score;
+
+    totalVeggies--;
+
+    if (totalVeggies == 0)
+    {	
+		sprite.destroy();
+		scoreText.destroy();
+
+		scoreText.destroy();
+		levelText.destroy();
+		//bullets.destroy();
+		lvl++;
+    	create();
+    }
+
+}
+
+//  Called if the bullet hits one of the veg sprites
+function collisionHandler (bullet, veg) {
+
+    bullet.kill();
+    veg.kill();
+
+    score += 10;
+    scoreText.text = 'Score: ' + score;
+
+    totalVeggies--;
+
+    if (totalVeggies == 0)
+    {	
+		sprite.destroy();
+		scoreText.destroy();
+
+		scoreText.destroy();
+		levelText.destroy();
+		//bullets.destroy();
+		lvl++;
+    	create();
+    }
+}
+
+
+function actionOnClick () {
+	active = 1;
+
+//  This will check Group vs. Group collision (bullets vs. veggies!)
+	background.destroy();
+	background = game.add.tileSprite(0, 0, 800, 600, "map");
+
+	veggies = game.add.group();
+	veggies.enableBody = true;
+	veggies.physicsBodyType = Phaser.Physics.ARCADE;
+
+	for (var i = 0; i < totalVeggies; i++)
+	{	
+		var pos = game.world.randomX;
+		
+		while(pos < 0 || pos > 750)
+		{
+			var pos = game.world.randomX;
+		}
+
+		var c = veggies.create(pos, 0, 'veggies', game.rnd.integerInRange(0, 36));
+		c.name = 'veg' + i;
+		c.body.immovable = true;
+		c.game
+		c.body.velocity.y = (Math.random() + 1) * velocity;
+		c.checkWorldBounds = true;
+		c.events.onOutOfBounds.add(destroyVeg, this);
+	}
+
+	//  The score
+	scoreText = game.add.text(16, 16, 'Score: '+score, { fontSize: '32px', fill: '#FFF' });
+	levelText = game.add.text(630, 16, 'Level: '+lvl, { fontSize: '32px', fill: '#FFF' });
+
+	bullets = game.add.group();
+	bullets.enableBody = true;
+	bullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+	for (var i = 0; i < 20; i++)
+	{
+	    var b = bullets.create(0, 0, 'shur');
+	    b.name = 'shur' + i;
+	    b.exists = false;
+	    b.visible = false;
+	    b.checkWorldBounds = true;
+	    b.events.onOutOfBounds.add(resetBullet, this);
+	}
+
+	sprite = game.add.sprite(400, 550, 'phaser');
+
+	game.physics.enable(sprite, Phaser.Physics.ARCADE);
+	sprite.body.collideWorldBounds = true;
+
+	cursors = game.input.keyboard.createCursorKeys();
+	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
+	button.destroy();
+}
+
+</script>
+
+</body>
+</html>
